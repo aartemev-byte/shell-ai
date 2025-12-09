@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHELL AI — AI-Powered Domain Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #000;
+  --bg-card: #0a0a0f;
+  --green: #00ff41;
+  --green-dim: rgba(0,255,65,0.1);
+  --blue: #00d4ff;
+  --purple: #bf00ff;
+  --pink: #ff0080;
+  --red: #ff0040;
+  --orange: #ff6b00;
+  --gold: #ffd700;
+  --text: #e0e0e0;
+  --dim: #666;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ГЛОБАЛЬНЫЙ ФОН */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(0,255,65,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(0,212,255,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(191,0,255,0.04) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* СКАНЛАЙНЫ */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,255,65,0.015) 2px,
+    rgba(0,255,65,0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.container { max-width: 1400px; margin: 0 auto; padding: 0 30px; }
+
+/* ===== HERO ===== */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  padding: 60px 20px;
+}
+
+.hero-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: 
+    linear-gradient(180deg, transparent 0%, rgba(0,255,65,0.05) 50%, transparent 100%);
+  z-index: -1;
+}
+
+.hero-grid {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: 
+    linear-gradient(rgba(0,255,65,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,65,0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+  z-index: -1;
+}
+
+.logo-wrapper {
+  position: relative;
+  margin-bottom: 30px;
+}
+
+.logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(4rem, 15vw, 10rem);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  position: relative;
+}
+
+.logo-shell {
+  color: #fff;
+  text-shadow: 
+    0 0 10px rgba(255,255,255,0.5),
+    0 0 30px rgba(255,255,255,0.3),
+    0 0 60px rgba(255,255,255,0.2);
+  animation: glitchText 8s infinite;
+}
+
+.logo-ai {
+  color: var(--green);
+  text-shadow: 
+    0 0 20px var(--green),
+    0 0 40px var(--green),
+    0 0 80px var(--green),
+    0 0 120px var(--green);
+  animation: pulseGlow 3s ease-in-out infinite;
+  margin-left: 20px;
+}
+
+@keyframes glitchText {
+  0%, 95%, 100% { transform: translate(0); filter: none; }
+  96% { transform: translate(-3px, 2px); filter: hue-rotate(90deg); }
+  97% { transform: translate(3px, -2px); filter: hue-rotate(-90deg); }
+  98% { transform: translate(-2px, -1px); filter: none; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { 
+    text-shadow: 0 0 20px var(--green), 0 0 40px var(--green), 0 0 80px var(--green);
+    filter: brightness(1);
+  }
+  50% { 
+    text-shadow: 0 0 30px var(--green), 0 0 60px var(--green), 0 0 100px var(--green), 0 0 140px var(--green);
+    filter: brightness(1.2);
+  }
+}
+
+.version-badge {
+  display: inline-block;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.9rem;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, var(--green-dim), rgba(0,212,255,0.1));
+  border: 1px solid var(--green);
+  border-radius: 30px;
+  color: var(--green);
+  letter-spacing: 3px;
+  margin-bottom: 30px;
+  animation: borderPulse 2s ease-in-out infinite;
+}
+
+@keyframes borderPulse {
+  0%, 100% { box-shadow: 0 0 5px var(--green), inset 0 0 5px transparent; }
+  50% { box-shadow: 0 0 20px var(--green), inset 0 0 10px var(--green-dim); }
+}
+
+.tagline {
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  color: var(--dim);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-bottom: 50px;
+}
+
+.tagline span {
+  color: var(--blue);
+  text-shadow: 0 0 10px var(--blue);
+}
+
+.hero-cta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.9rem;
+  padding: 18px 40px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary {
+  background: var(--green);
+  color: #000;
+  font-weight: 700;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 30px var(--green), 0 0 60px var(--green);
+  transform: translateY(-3px);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--green);
+  border: 1px solid var(--green);
+}
+
+.btn-secondary:hover {
+  background: var(--green-dim);
+  box-shadow: 0 0 20px var(--green-dim);
+}
+
+.scroll-indicator {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--dim);
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  animation: bounce 2s infinite;
+}
+
+.scroll-indicator::after {
+  content: '▼';
+  font-size: 1.2rem;
+  color: var(--green);
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(10px); }
+}
+
+/* ===== СЕКЦИИ ===== */
+.section {
+  padding: 120px 0;
+  position: relative;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.section-label {
+  font-size: 0.8rem;
+  color: var(--green);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 15px;
+}
+
+.section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 20px;
+}
+
+.section-subtitle {
+  font-size: 1.1rem;
+  color: var(--dim);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ===== FEATURES ===== */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 30px;
+}
+
+.feature-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 40px;
+  position: relative;
+  transition: all 0.4s ease;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--green), var(--blue));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s ease;
+}
+
+.feature-card:hover {
+  border-color: rgba(0,255,65,0.2);
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+.feature-card:hover::before { transform: scaleX(1); }
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 25px;
+  display: block;
+}
+
+.feature-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.3rem;
+  color: #fff;
+  margin-bottom: 15px;
+}
+
+.feature-desc {
+  color: var(--dim);
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+/* ===== WORKFLOW ===== */
+.workflow {
+  background: linear-gradient(180deg, transparent, rgba(0,255,65,0.02), transparent);
+}
+
+.workflow-steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.workflow-steps::before {
+  content: '';
+  position: absolute;
+  top: 50px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--green), var(--blue), var(--purple), var(--pink));
+  z-index: 0;
+}
+
+.workflow-step {
+  flex: 1;
+  min-width: 180px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.step-num {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 25px;
+  background: var(--bg);
+  border: 2px solid var(--green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--green);
+  position: relative;
+}
+
+.step-num::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 1px solid rgba(0,255,65,0.3);
+  border-radius: 50%;
+  animation: ripple 2s ease-out infinite;
+}
+
+@keyframes ripple {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+.step-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.9rem;
+  color: #fff;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.step-desc {
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+/* ===== ТОКСИЧНОСТЬ ===== */
+.toxic-section {
+  background: linear-gradient(180deg, transparent, rgba(255,0,64,0.03), transparent);
+}
+
+.toxic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.toxic-card {
+  background: rgba(255,0,64,0.05);
+  border: 1px solid rgba(255,0,64,0.2);
+  border-radius: 8px;
+  padding: 25px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.toxic-card:hover {
+  background: rgba(255,0,64,0.1);
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255,0,64,0.2);
+}
+
+.toxic-icon { font-size: 2.5rem; margin-bottom: 15px; }
+.toxic-name { font-family: 'Orbitron', sans-serif; font-size: 0.85rem; color: var(--red); letter-spacing: 1px; }
+
+/* ===== ВЕРДИКТЫ ===== */
+.verdicts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+
+.verdict-card {
+  padding: 50px 30px;
+  border-radius: 12px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.verdict-card.good {
+  background: linear-gradient(180deg, rgba(0,255,65,0.15), rgba(0,255,65,0.05));
+  border: 1px solid var(--green);
+}
+.verdict-card.review {
+  background: linear-gradient(180deg, rgba(255,170,0,0.15), rgba(255,170,0,0.05));
+  border: 1px solid var(--orange);
+}
+.verdict-card.bad {
+  background: linear-gradient(180deg, rgba(255,0,64,0.15), rgba(255,0,64,0.05));
+  border: 1px solid var(--red);
+}
+
+.verdict-icon { font-size: 4rem; margin-bottom: 20px; }
+.verdict-title { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; margin-bottom: 10px; }
+.verdict-card.good .verdict-title { color: var(--green); }
+.verdict-card.review .verdict-title { color: var(--orange); }
+.verdict-card.bad .verdict-title { color: var(--red); }
+.verdict-range { font-size: 2rem; font-weight: 700; color: #fff; margin-bottom: 15px; }
+.verdict-desc { color: var(--dim); font-size: 0.9rem; }
+
+/* ===== TECH STACK ===== */
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+}
+
+.tech-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 30px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: all 0.3s ease;
+}
+
+.tech-card:hover {
+  border-color: var(--blue);
+  box-shadow: 0 0 20px rgba(0,212,255,0.1);
+}
+
+.tech-icon { font-size: 2.5rem; }
+.tech-name { font-family: 'Orbitron', sans-serif; font-size: 1rem; color: #fff; margin-bottom: 5px; }
+.tech-desc { font-size: 0.8rem; color: var(--dim); }
+
+/* ===== FOOTER ===== */
+.footer {
+  padding: 60px 0;
+  text-align: center;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.footer-logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.footer-logo .shell { color: #fff; }
+.footer-logo .ai { color: var(--green); }
+
+.footer-text { color: var(--dim); font-size: 0.9rem; }
+.footer-text a { color: var(--green); text-decoration: none; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .workflow-steps::before { display: none; }
+  .verdicts-grid { grid-template-columns: 1fr; }
+  .hero-cta { flex-direction: column; align-items: center; }
+  .btn { width: 100%; max-width: 300px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  
+  <div class="logo-wrapper">
+    <div class="logo">
+      <span class="logo-shell">SHELL</span><span class="logo-ai">AI</span>
+    </div>
+  </div>
+  
+  <div class="version-badge">VERSION 5.11</div>
+  
+  <p class="tagline">AI-Powered <span>Domain Scanner</span> for Link Building</p>
+  
+  <div class="hero-cta">
+    <a href="#features" class="btn btn-primary">Возможности</a>
+    <a href="#workflow" class="btn btn-secondary">Как работает</a>
+  </div>
+  
+  <div class="scroll-indicator">SCROLL</div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">// capabilities</div>
+      <h2 class="section-title">Что умеет SHELL AI?</h2>
+      <p class="section-subtitle">Автоматизированный анализ доменов для link building с AI-поддержкой</p>
+    </div>
+    
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">🔍</span>
+        <h3 class="feature-title">Глубокий парсинг Ahrefs</h3>
+        <p class="feature-desc">Автоматически собирает DR, трафик, ключевые слова, бэклинки, топ-страницы и анкоры за 5 лет истории</p>
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon">🤖</span>
+        <h3 class="feature-title">AI-анализ через Groq</h3>
+        <p class="feature-desc">LLaMA 3.3 70B анализирует профиль ссылок, определяет нишу, оценивает риски и даёт рекомендации</p>
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon">☠️</span>
+        <h3 class="feature-title">Детекция токсичности</h3>
+        <p class="feature-desc">8 категорий токсичного контента: казино, adult, фарма, пиратка, крипто-скам, дейтинг, займы, похудение</p>
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <h3 class="feature-title">Early Exit</h3>
+        <p class="feature-desc">Прекращает анализ при обнаружении критических проблем — экономит время на заведомо плохих доменах</p>
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon">📊</span>
+        <h3 class="feature-title">HTML-отчёты</h3>
+        <p class="feature-desc">Генерирует красивые интерактивные отчёты с детальной информацией по каждому домену</p>
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon">🌍</span>
+        <h3 class="feature-title">Гео-анализ</h3>
+        <p class="feature-desc">Определяет топ-страну трафика с флагами и процентным распределением по регионам</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKFLOW -->
+<section id="workflow" class="section workflow">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">// process</div>
+      <h2 class="section-title">6-этапный анализ</h2>
+      <p class="section-subtitle">Каждый домен проходит через полный конвейер проверки</p>
+    </div>
+    
+    <div class="workflow-steps">
+      <div class="workflow-step">
+        <div class="step-num">1</div>
+        <div class="step-title">OVERVIEW</div>
+        <div class="step-desc">DR, UR, трафик, ключевые слова, гео</div>
+      </div>
+      
+      <div class="workflow-step">
+        <div class="step-num">2</div>
+        <div class="step-title">BACKLINKS</div>
+        <div class="step-desc">Анализ доноров, BEST-ссылки, спам</div>
+      </div>
+      
+      <div class="workflow-step">
+        <div class="step-num">3</div>
+        <div class="step-title">TOP PAGES</div>
+        <div class="step-desc">История страниц, токсичный контент</div>
+      </div>
+      
+      <div class="workflow-step">
+        <div class="step-num">4</div>
+        <div class="step-title">ANCHORS</div>
+        <div class="step-desc">5 лет истории, до 250 анкоров</div>
+      </div>
+      
+      <div class="workflow-step">
+        <div class="step-num">5</div>
+        <div class="step-title">SITE SCAN</div>
+        <div class="step-desc">Контент сайта, PBN-признаки</div>
+      </div>
+      
+      <div class="workflow-step">
+        <div class="step-num">6</div>
+        <div class="step-title">AI VERDICT</div>
+        <div class="step-desc">Финальная оценка и рекомендации</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOXIC -->
+<section class="section toxic-section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">// threat detection</div>
+      <h2 class="section-title">8 категорий токсичности</h2>
+      <p class="section-subtitle">Автоматическое обнаружение опасного контента в истории домена</p>
+    </div>
+    
+    <div class="toxic-grid">
+      <div class="toxic-card">
+        <div class="toxic-icon">🎰</div>
+        <div class="toxic-name">CASINO</div>
+      </div>
+      <div class="toxic-card">
+        <div class="toxic-icon">🔞</div>
+        <div class="toxic-name">ADULT</div>
+      </div>
+      <div class="toxic-card">
+        <div class="toxic-icon">💊</div>
+        <div class="toxic-name">PHARMA</div>
+      </div>
+      <div class="toxic-card">
+        <div class="toxic-icon">🏴‍☠️</div>
+        <div class="toxic-name">PIRACY</div>
+      </div>
+      <div class="toxic-card">
+        <div class="toxic-icon">₿</div>
+        <div class="toxic-name">CRYPTO SCAM</div>
+      </div>
+      <div class="toxic-card">
+        <div class="toxic-icon">💕</div>
+        <div class="toxic-name">DATING</div>
+      </div>
+      <div class="toxic-card">
+        <div class="toxic-icon">💸</div>
+        <div class="toxic-name">LOANS</div>
+      </div>
+      <div class="toxic-card">
+        <div class="toxic-icon">⚖️</div>
+        <div class="toxic-name">WEIGHT LOSS</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VERDICTS -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">// output</div>
+      <h2 class="section-title">Система вердиктов</h2>
+      <p class="section-subtitle">Каждый домен получает оценку от 0 до 10</p>
+    </div>
+    
+    <div class="verdicts-grid">
+      <div class="verdict-card good">
+        <div class="verdict-icon">✓</div>
+        <div class="verdict-title">APPROVED</div>
+        <div class="verdict-range">7-10</div>
+        <div class="verdict-desc">Чистая история, качественные бэклинки, рекомендуется к покупке</div>
+      </div>
+      
+      <div class="verdict-card review">
+        <div class="verdict-icon">?</div>
+        <div class="verdict-title">REVIEW</div>
+        <div class="verdict-range">4-6</div>
+        <div class="verdict-desc">Требует ручной проверки, есть подозрительные сигналы</div>
+      </div>
+      
+      <div class="verdict-card bad">
+        <div class="verdict-icon">✗</div>
+        <div class="verdict-title">REJECTED</div>
+        <div class="verdict-range">0-3</div>
+        <div class="verdict-desc">Токсичная история, спам, не рекомендуется</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">// stack</div>
+      <h2 class="section-title">Технологии</h2>
+    </div>
+    
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-icon">🧩</div>
+        <div>
+          <div class="tech-name">Chrome Extension MV3</div>
+          <div class="tech-desc">Manifest V3, Service Worker</div>
+        </div>
+      </div>
+      
+      <div class="tech-card">
+        <div class="tech-icon">🦙</div>
+        <div>
+          <div class="tech-name">Groq + LLaMA 3.3 70B</div>
+          <div class="tech-desc">Бесплатный AI API</div>
+        </div>
+      </div>
+      
+      <div class="tech-card">
+        <div class="tech-icon">📊</div>
+        <div>
+          <div class="tech-name">Ahrefs Parsing</div>
+          <div class="tech-desc">DOM-инъекция скриптов</div>
+        </div>
+      </div>
+      
+      <div class="tech-card">
+        <div class="tech-icon">🎨</div>
+        <div>
+          <div class="tech-name">Cyberpunk UI</div>
+          <div class="tech-desc">Terminal-style отчёты</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-logo">
+      <span class="shell">SHELL</span><span class="ai">AI</span>
+    </div>
+    <p class="footer-text">AI-Powered Domain Scanner • v5.11</p>
+  </div>
+</footer>
+
+</body>
+</html>
